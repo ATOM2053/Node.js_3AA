@@ -10,164 +10,170 @@
   <style>
     body { font-family: 'Kanit', sans-serif; background: #070709; color: #e2e8f0; }
     .chinese-border { border: 2px solid #d97706; box-shadow: 0 0 15px rgba(217, 119, 6, 0.3); }
-    
-    /* เอฟเฟกต์การ์ดโมเดลตัวละคร */
-    .card-model {
-      background: linear-gradient(135deg, #18181b 0%, #09090b 100%);
-      border-radius: 12px;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-    .card-model:hover {
-      transform: translateY(-6px) scale(1.02);
-    }
-    .rarity-UR { border: 2px solid #a855f7; box-shadow: 0 0 20px rgba(168, 85, 247, 0.5); }
-    .rarity-SSR { border: 2px solid #eab308; box-shadow: 0 0 15px rgba(234, 179, 8, 0.4); }
-    .rarity-R { border: 2px solid #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
-
-    /* ปรับแต่ง Scrollbar สวยๆ */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #09090b; }
+    .card-model { background: linear-gradient(135deg, #18181b 0%, #09090b 100%); border-radius: 12px; transition: all 0.3s ease; }
+    .card-model:hover { transform: translateY(-4px); }
+    .rarity-UR { border: 2px solid #a855f7; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); }
+    .rarity-SSR { border: 2px solid #eab308; box-shadow: 0 0 12px rgba(234, 179, 8, 0.3); }
+    .rarity-R { border: 2px solid #3b82f6; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-thumb { background: #d97706; border-radius: 3px; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-  <!-- Header Section (Responsive) -->
-  <header class="bg-black/90 border-b border-amber-600/50 p-3 md:p-4 flex flex-wrap justify-between items-center backdrop-blur sticky top-0 z-50">
-    <div class="flex items-center space-x-2 md:space-x-3">
-      <h1 class="text-lg md:text-2xl font-bold text-amber-500 tracking-wider">🏮 สามก๊ก CARD ONLINE</h1>
-      <span class="bg-amber-900/50 text-amber-300 text-[10px] md:text-xs px-2 py-0.5 rounded border border-amber-500/30">
+  <!-- Header -->
+  <header class="bg-black/90 border-b border-amber-600/50 p-3 flex justify-between items-center sticky top-z-50 z-50">
+    <div class="flex items-center space-x-2">
+      <h1 class="text-base md:text-xl font-bold text-amber-500">🏮 สามก๊ก ONLINE</h1>
+      <span class="bg-amber-900/50 text-amber-300 text-[10px] px-2 py-0.5 rounded border border-amber-500/30">
         🟢 ออนไลน์: <span id="online-count">1</span>
       </span>
     </div>
-    <div id="user-bar" class="hidden flex items-center space-x-2 md:space-x-4 text-xs md:text-sm mt-2 sm:mt-0">
+    <div id="user-bar" class="hidden flex items-center space-x-3 text-xs">
+      <img id="header-avatar" src="" class="w-8 h-8 rounded-full border border-amber-500 object-cover">
       <div class="text-right">
         <span id="player-name" class="font-bold text-amber-400"></span> 
-        <span id="player-badge" class="bg-red-900/80 text-red-200 text-[10px] px-1.5 py-0.5 rounded"></span>
+        <span id="player-badge" class="bg-red-900/80 text-red-200 text-[9px] px-1 py-0.5 rounded"></span>
       </div>
-      <div class="flex space-x-2 bg-gray-900 px-2.5 py-1 rounded-full border border-gray-700">
+      <div class="flex space-x-2 bg-gray-900 px-2 py-1 rounded-full border border-gray-700">
         <span>🪙 <span id="player-coins">0</span></span>
         <span>💎 <span id="player-gems">0</span></span>
       </div>
     </div>
   </header>
 
-  <!-- Notification Banner -->
-  <div id="notify-box" class="hidden bg-amber-600 text-black text-center text-xs md:text-sm py-2 font-bold transition-all fixed top-14 left-0 right-0 z-50 shadow-lg"></div>
+  <!-- Notification -->
+  <div id="notify-box" class="hidden bg-amber-600 text-black text-center text-xs py-2 font-bold fixed top-12 left-0 right-0 z-50 shadow-lg"></div>
 
-  <!-- Login Modal / Screen -->
+  <!-- Login Screen -->
   <div id="login-screen" class="flex-1 flex items-center justify-center p-4">
-    <div class="bg-gray-900/95 chinese-border p-6 md:p-8 rounded-xl max-w-md w-full space-y-4 shadow-2xl">
-      <div class="text-center space-y-1">
-        <h2 class="text-xl md:text-2xl font-bold text-amber-400">เข้าสู่ยุทธภพสามก๊ก</h2>
-        <p class="text-[11px] md:text-xs text-gray-400">ชื่อภาษาอังกฤษเท่านั้น / รหัสผ่าน 6 ตัวขึ้นไป (A-Z, a-z, 0-9)</p>
+    <div class="bg-gray-900/95 chinese-border p-6 rounded-xl max-w-md w-full space-y-4">
+      <h2 class="text-xl font-bold text-amber-400 text-center">เข้าสู่ยุทธภพสามก๊ก</h2>
+      <p class="text-[11px] text-gray-400 text-center">ชื่ออังกฤษเท่านั้น / รหัสผ่าน 6 ตัวขึ้นไป (A-Z, a-z, 0-9)</p>
+      <div>
+        <label class="block text-xs mb-1 text-gray-300">ชื่อผู้ใช้ (English Only)</label>
+        <input id="login-user" type="text" placeholder="e.g. ZhaoYun" class="w-full bg-black/60 border border-amber-600/40 rounded p-2 text-sm text-white">
       </div>
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs md:text-sm mb-1 text-gray-300">ชื่อผู้ใช้ (English Only)</label>
-          <input id="login-user" type="text" placeholder="e.g. ZhaoYun" class="w-full bg-black/60 border border-amber-600/40 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
-        </div>
-        <div>
-          <label class="block text-xs md:text-sm mb-1 text-gray-300">รหัสผ่าน (6 ตัวขึ้นไป)</label>
-          <input id="login-pass" type="password" placeholder="******" class="w-full bg-black/60 border border-amber-600/40 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
-        </div>
+      <div>
+        <label class="block text-xs mb-1 text-gray-300">รหัสผ่าน</label>
+        <input id="login-pass" type="password" placeholder="******" class="w-full bg-black/60 border border-amber-600/40 rounded p-2 text-sm text-white">
       </div>
-      <button onclick="login()" class="w-full bg-amber-600 hover:bg-amber-500 text-black font-bold py-2.5 rounded-lg transition text-sm md:text-base shadow-lg">
+      <button onclick="login()" class="w-full bg-amber-600 hover:bg-amber-500 text-black font-bold py-2 rounded text-sm transition">
         เข้าสู่ระบบ / สมัครสมาชิก
       </button>
     </div>
   </div>
 
-  <!-- Main Game Dashboard (Grid Responsive สำหรับมือถือและ PC) -->
-  <div id="main-dashboard" class="hidden flex-1 container mx-auto p-2 md:p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+  <!-- Main Game Dashboard (ซ่อนไว้ก่อนล็อกอิน) -->
+  <div id="main-dashboard" class="hidden flex-1 flex flex-col container mx-auto p-2 md:p-4 max-w-5xl space-y-4">
     
-    <!-- Left Panel: Profile & Topup & Showcase -->
-    <div class="bg-gray-900/80 chinese-border p-4 rounded-xl space-y-4 h-fit">
-      <h3 class="text-lg font-bold text-amber-400 border-b border-amber-600/30 pb-2">👤 โปรไฟล์จอมยุทธ์</h3>
-      <div class="space-y-1.5 text-xs md:text-sm bg-black/40 p-3 rounded-lg border border-gray-800">
-        <p>UID: <span id="prof-uid" class="text-amber-300 font-mono"></span></p>
-        <p>ฉายา: <span id="prof-title" class="text-amber-300"></span></p>
-        <p>ยศ: <span id="prof-role" class="text-blue-400 font-bold"></span></p>
-        <p>ระดับ VIP: <span id="prof-vip" class="text-yellow-400 font-bold"></span></p>
+    <!-- Navigation Categories Tabs -->
+    <div class="grid grid-cols-3 gap-2 bg-gray-900/90 p-1.5 rounded-xl border border-amber-600/40 text-center text-xs md:text-sm font-bold">
+      <button onclick="switchTab(1)" id="tab-btn-1" class="py-2 rounded-lg bg-amber-600 text-black transition">หมวด 1: หน้าหลัก</button>
+      <button onclick="switchTab(2)" id="tab-btn-2" class="py-2 rounded-lg text-gray-300 hover:text-white transition">หมวด 2: สนามประลอง PvP</button>
+      <button onclick="switchTab(3)" id="tab-btn-3" class="py-2 rounded-lg text-gray-300 hover:text-white transition">หมวด 3: เติมเงิน & คลังการ์ด</button>
+    </div>
+
+    <!-- TAB 1: หน้าหลัก -->
+    <div id="tab-content-1" class="space-y-4">
+      <div class="bg-gray-900/80 chinese-border p-4 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+        <div class="flex items-center space-x-4">
+          <img id="prof-avatar" src="" class="w-16 h-16 rounded-full border-2 border-amber-500 object-cover">
+          <div class="space-y-1 text-xs md:text-sm">
+            <p>UID: <span id="prof-uid" class="text-amber-300 font-mono"></span></p>
+            <p>ชื่อ: <span id="prof-username" class="text-amber-400 font-bold"></span></p>
+            <p>ฉายา: <span id="prof-title" class="text-amber-300"></span> | ยศ: <span id="prof-role" class="text-blue-400 font-bold"></span></p>
+            <p>ระดับ VIP: <span id="prof-vip" class="text-yellow-400 font-bold"></span></p>
+          </div>
+        </div>
+        <div class="space-y-2 bg-black/40 p-3 rounded-lg border border-gray-800">
+          <label class="block text-xs text-amber-400">เปลี่ยนรูปโปรไฟล์ (ใส่ลิงก์รูปภาพ URL)</label>
+          <div class="flex space-x-2">
+            <input id="avatar-input" type="text" placeholder="https://..." class="w-full bg-gray-900 border border-gray-700 p-1.5 rounded text-xs text-white">
+            <button onclick="updateAvatar()" class="bg-amber-600 text-black font-bold px-3 py-1 rounded text-xs">เปลี่ยน</button>
+          </div>
+        </div>
       </div>
 
-      <button onclick="claimDaily()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 rounded-lg text-xs md:text-sm transition shadow">
-        🎁 รับของขวัญประจำวัน (รีเซ็ต 00:00)
+      <!-- Gacha Section -->
+      <div class="bg-gray-900/80 chinese-border p-4 rounded-xl space-y-3">
+        <h3 class="font-bold text-amber-400 text-sm md:text-base">🎰 ตู้สุ่มอัญเชิญขุนพล</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="bg-black/50 p-3 rounded-lg border border-gray-700 text-center space-y-2">
+            <h4 class="font-bold text-gray-300 text-xs">ตู้เหรียญ (ทั่วไป)</h4>
+            <button onclick="drawGacha('coins')" class="w-full bg-amber-700 text-white font-bold py-1.5 rounded text-xs">สุ่ม (200 เหรียญ)</button>
+          </div>
+          <div class="bg-black/50 p-3 rounded-lg border border-amber-500/60 text-center space-y-2">
+            <h4 class="font-bold text-amber-400 text-xs">ตู้เพชร (เรทการ์ดแรร์สูง)</h4>
+            <button onclick="drawGacha('gems')" class="w-full bg-amber-500 text-black font-bold py-1.5 rounded text-xs">สุ่ม (50 เพชร)</button>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="claimDaily()" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs md:text-sm transition shadow">
+        🎁 รับของขวัญประจำวัน (รีเซ็ตทุก 00:00 น.)
       </button>
 
-      <!-- Topup Box -->
-      <div class="bg-black/50 p-3 rounded-lg border border-amber-600/30 space-y-2">
-        <h4 class="text-xs md:text-sm font-bold text-amber-400">💳 เติมเงิน (ขั้นต่ำ 10 บาท)</h4>
-        <input id="topup-amount" type="number" min="10" placeholder="จำนวนเงิน (บาท)" class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-xs md:text-sm text-white focus:outline-none focus:border-amber-500">
-        <button onclick="topup()" class="w-full bg-amber-600 hover:bg-amber-500 text-black font-bold py-1.5 rounded text-xs md:text-sm transition">
-          ยืนยันการเติมเงิน
-        </button>
-      </div>
-
-      <!-- Rare Cards Showcase -->
-      <div>
-        <h4 class="text-xs md:text-sm font-bold text-amber-400 mb-2">✨ ตู้โชว์การ์ดแรร์ (UR/SSR)</h4>
-        <div id="rare-showcase" class="grid grid-cols-2 gap-2 text-xs"></div>
+      <!-- Admin Panel (แสดงเฉพาะ ADMIN) -->
+      <div id="admin-panel" class="hidden bg-red-950/40 border border-red-500/60 p-4 rounded-xl space-y-3">
+        <h3 class="font-bold text-red-400 text-sm">🛠️ แผงควบคุมผู้ดูแลระบบ (Admin Panel)</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input id="admin-target" type="text" placeholder="ชื่อผู้เล่นเป้าหมาย" class="bg-black/60 border border-red-900 p-2 rounded text-xs text-white">
+          <select id="admin-action-type" class="bg-black/60 border border-red-900 p-2 rounded text-xs text-white">
+            <option value="set_role">เปลี่ยนยศ</option>
+            <option value="give_gems">เสกเพชร</option>
+            <option value="ban">แบนผู้เล่น</option>
+          </select>
+          <input id="admin-value" type="text" placeholder="ค่า (เช่น นักแข่ง / 500)" class="bg-black/60 border border-red-900 p-2 rounded text-xs text-white">
+        </div>
+        <button onclick="executeAdminAction()" class="w-full bg-red-700 hover:bg-red-600 text-white font-bold py-2 rounded text-xs">ยืนยันคำสั่งแอดมิน</button>
+        <div class="text-[11px] text-gray-400">รายชื่อผู้เล่นทั้งหมดในเซิร์ฟเวอร์: <span id="admin-user-list" class="text-amber-300"></span></div>
       </div>
     </div>
 
-    <!-- Center/Right Panel: PvP Arena, Gacha & Inventory -->
-    <div class="lg:col-span-2 space-y-4 md:space-y-6">
-      
-      <!-- Matchmaking & Battle Section -->
+    <!-- TAB 2: สนามประลอง PvP -->
+    <div id="tab-content-2" class="hidden space-y-4">
       <div class="bg-gray-900/80 chinese-border p-4 rounded-xl text-center space-y-4">
         <h3 class="text-lg font-bold text-amber-400">⚔️ สนามประลองออนไลน์ (PvP)</h3>
-        
         <div id="battle-area" class="hidden space-y-3">
-          <div class="flex justify-between items-center bg-black/70 p-3 md:p-4 rounded-xl border border-gray-800">
-            <div class="text-left">
-              <p id="my-name-battle" class="font-bold text-green-400 text-sm md:text-base"></p>
-              <p class="text-xs text-gray-400">HP: <span id="my-hp" class="text-red-400 text-base md:text-xl font-bold">100</span></p>
+          <div class="flex justify-between items-center bg-black/70 p-3 rounded-xl border border-gray-800">
+            <div>
+              <p id="my-name-battle" class="font-bold text-green-400 text-sm"></p>
+              <p class="text-xs text-gray-400">HP: <span id="my-hp" class="text-red-400 text-lg font-bold">100</span></p>
             </div>
-            <div class="text-lg md:text-2xl font-bold text-amber-500 animate-pulse">VS</div>
-            <div class="text-right">
-              <p id="opp-name-battle" class="font-bold text-red-400 text-sm md:text-base"></p>
-              <p class="text-xs text-gray-400">HP: <span id="opp-hp" class="text-red-400 text-base md:text-xl font-bold">100</span></p>
+            <div class="text-xl font-bold text-amber-500 animate-pulse">VS</div>
+            <div>
+              <p id="opp-name-battle" class="font-bold text-red-400 text-sm"></p>
+              <p class="text-xs text-gray-400">HP: <span id="opp-hp" class="text-red-400 text-lg font-bold">100</span></p>
             </div>
           </div>
-          <div id="battle-log" class="text-xs md:text-sm text-amber-300 h-14 overflow-y-auto bg-black/60 p-2.5 rounded-lg border border-amber-600/20 text-center"></div>
+          <div id="battle-log" class="text-xs text-amber-300 h-14 overflow-y-auto bg-black/60 p-2 rounded border border-amber-600/20 text-center"></div>
         </div>
-
-        <button id="find-match-btn" onclick="findMatch()" class="bg-red-700 hover:bg-red-600 text-white font-bold py-2.5 px-6 md:px-8 rounded-full text-sm md:text-base shadow-lg transition active:scale-95">
-          ⚔️ ค้นหาห้องประลอง PvP
+        <button id="find-match-btn" onclick="findMatch()" class="bg-red-700 hover:bg-red-600 text-white font-bold py-2.5 px-8 rounded-full text-sm shadow-lg transition">
+          ⚔️ ค้นหาคู่ต่อสู้
         </button>
       </div>
+    </div>
 
-      <!-- Gacha System -->
-      <div class="bg-gray-900/80 chinese-border p-4 rounded-xl space-y-4">
-        <h3 class="text-lg font-bold text-amber-400">🎰 อัญเชิญขุนพล (Gacha)</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          <div class="bg-black/50 p-3.5 rounded-xl border border-gray-700 text-center space-y-2">
-            <h4 class="font-bold text-gray-300 text-sm">ตู้ขุนพลทั่วไป</h4>
-            <p class="text-[11px] text-gray-400">สุ่มการ์ดระดับ R - UR (ใช้เหรียญ)</p>
-            <button onclick="drawGacha('coins')" class="w-full bg-amber-700 hover:bg-amber-600 text-white font-bold py-2 rounded-lg text-xs md:text-sm transition">
-              สุ่ม (200 เหรียญ)
-            </button>
-          </div>
-          <div class="bg-black/50 p-3.5 rounded-xl border border-amber-500/60 text-center space-y-2">
-            <h4 class="font-bold text-amber-400 text-sm">ตู้เทพขุนพล</h4>
-            <p class="text-[11px] text-amber-200/70">การันตี SSR/UR โอกาสออกสูง (ใช้เพชร)</p>
-            <button onclick="drawGacha('gems')" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 rounded-lg text-xs md:text-sm transition shadow">
-              สุ่ม (50 เพชร)
-            </button>
-          </div>
-        </div>
+    <!-- TAB 3: เติมเงิน & คลังการ์ด -->
+    <div id="tab-content-3" class="hidden space-y-4">
+      <div class="bg-gray-900/80 chinese-border p-4 rounded-xl space-y-3">
+        <h4 class="text-sm font-bold text-amber-400">💳 ระบบเติมเงิน (ขั้นต่ำ 10 บาท)</h4>
+        <input id="topup-amount" type="number" min="10" placeholder="จำนวนเงิน (บาท)" class="w-full bg-gray-900 border border-gray-700 p-2 rounded text-xs text-white">
+        <button onclick="topup()" class="w-full bg-amber-600 hover:bg-amber-500 text-black font-bold py-2 rounded text-xs transition">เติมเงิน</button>
       </div>
 
-      <!-- My Cards Inventory (โมเดลการ์ดตัวละคร) -->
+      <div class="bg-gray-900/80 chinese-border p-4 rounded-xl space-y-3">
+        <h4 class="text-sm font-bold text-amber-400">✨ ตู้โชว์การ์ดแรร์ (UR/SSR)</h4>
+        <div id="rare-showcase" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs"></div>
+      </div>
+
       <div class="bg-gray-900/80 chinese-border p-4 rounded-xl">
-        <h3 class="text-lg font-bold text-amber-400 mb-3">🎴 สำรับการ์ดขุนพลของฉัน</h3>
+        <h3 class="text-sm font-bold text-amber-400 mb-3">🎴 คลังสำรับการ์ดทั้งหมดของฉัน</h3>
         <div id="my-cards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
       </div>
-
     </div>
+
   </div>
 
   <script>
@@ -185,6 +191,15 @@
     socket.on('notify', data => showNotify(data.msg));
     socket.on('online_count', count => document.getElementById('online-count').innerText = count);
 
+    function switchTab(tabNum) {
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById(`tab-content-${i}`).classList.add('hidden');
+        document.getElementById(`tab-btn-${i}`).className = "py-2 rounded-lg text-gray-300 hover:text-white transition";
+      }
+      document.getElementById(`tab-content-${tabNum}`).classList.remove('hidden');
+      document.getElementById(`tab-btn-${tabNum}`).className = "py-2 rounded-lg bg-amber-600 text-black transition font-bold";
+    }
+
     function login() {
       const username = document.getElementById('login-user').value.trim();
       const password = document.getElementById('login-pass').value.trim();
@@ -198,6 +213,10 @@
       document.getElementById('main-dashboard').classList.remove('hidden');
       document.getElementById('user-bar').classList.remove('hidden');
       updateUI();
+      if (currentUser.role === 'ADMIN') {
+        document.getElementById('admin-panel').classList.remove('hidden');
+        updateAdminList(data.allUsers);
+      }
     });
 
     socket.on('user_update', user => {
@@ -205,13 +224,25 @@
       updateUI();
     });
 
+    socket.on('refresh_admin_list', list => {
+      updateAdminList(list);
+    });
+
+    function updateAdminList(list) {
+      const listEl = document.getElementById('admin-user-list');
+      listEl.innerText = list.map(u => `${u.username} (${u.role})`).join(', ');
+    }
+
     function updateUI() {
       document.getElementById('player-name').innerText = currentUser.username;
       document.getElementById('player-badge').innerText = currentUser.role;
       document.getElementById('player-coins').innerText = currentUser.coins;
       document.getElementById('player-gems').innerText = currentUser.gems;
+      document.getElementById('header-avatar').src = currentUser.avatar;
 
+      document.getElementById('prof-avatar').src = currentUser.avatar;
       document.getElementById('prof-uid').innerText = currentUser.uid;
+      document.getElementById('prof-username').innerText = currentUser.username;
       document.getElementById('prof-title').innerText = currentUser.title;
       document.getElementById('prof-role').innerText = currentUser.role;
       document.getElementById('prof-vip').innerText = `VIP ${currentUser.vip}`;
@@ -219,7 +250,6 @@
       renderCards();
     }
 
-    // เรนเดอร์โมเดลการ์ดตัวละครแบบสวยงาม รองรับมือถือและ PC
     const HERO_DATA_MAP = {
       caocao: { name: 'โจโฉ', faction: 'วุยก๊ก', rarity: 'UR', atk: 25, color: 'text-blue-400' },
       guanyu: { name: 'กวนอู', faction: 'จ๊กก๊ก', rarity: 'UR', atk: 30, color: 'text-green-400' },
@@ -249,12 +279,10 @@
               <span class="bg-black/60 px-1.5 py-0.5 rounded text-gray-300">${info.faction}</span>
               <span class="font-bold px-1.5 py-0.5 rounded bg-amber-900/60 text-amber-300">${info.rarity}</span>
             </div>
-            <p class="font-bold text-sm md:text-base ${info.color} my-2">${info.name}</p>
-            <p class="text-[11px] text-gray-400">พลังโจมตี: <span class="text-red-400 font-bold">${info.atk}</span></p>
+            <p class="font-bold text-sm ${info.color} my-1">${info.name}</p>
+            <p class="text-[11px] text-gray-400">โจมตี: <span class="text-red-400 font-bold">${info.atk}</span></p>
           </div>
-          <div class="mt-3 pt-2 border-t border-gray-800">
-            <span class="text-[10px] text-amber-400/80 font-semibold">แตะเพื่อเลือกสู้ ⚔️</span>
-          </div>
+          <div class="mt-2 pt-1 border-t border-gray-800 text-[10px] text-amber-400">แตะเพื่อเลือกสู้ ⚔️</div>
         `;
         cardEl.onclick = () => playCard(cardId);
         cardsDiv.appendChild(cardEl);
@@ -267,6 +295,12 @@
         rareEl.innerText = `⭐ ${info.name} [${info.rarity}]`;
         rareDiv.appendChild(rareEl);
       });
+    }
+
+    function updateAvatar() {
+      const avatarUrl = document.getElementById('avatar-input').value.trim();
+      if (!avatarUrl) return showNotify('กรุณากรอกลิงก์รูปภาพ');
+      socket.emit('update_avatar', { username: currentUser.username, avatarUrl });
     }
 
     function topup() {
@@ -285,8 +319,15 @@
     socket.on('gacha_result', data => {
       currentUser = data.user;
       updateUI();
-      alert(`🎉 ยินดีด้วย! คุณได้รับขุนพล: ${data.card.name} [ระดับ ${data.card.rarity}]!`);
+      alert(`🎉 ได้รับขุนพล: ${data.card.name} [ระดับ ${data.card.rarity}]!`);
     });
+
+    function executeAdminAction() {
+      const targetUser = document.getElementById('admin-target').value.trim();
+      const action = document.getElementById('admin-action-type').value;
+      const value = document.getElementById('admin-value').value.trim();
+      socket.emit('admin_action', { adminUser: currentUser.username, targetUser, action, value });
+    }
 
     function findMatch() {
       socket.emit('find_match', { username: currentUser.username });
@@ -303,7 +344,7 @@
     });
 
     function playCard(cardId) {
-      if (!currentBattleId) return showNotify('กรุณากดค้นหาห้องประลอง PvP ก่อนเลือกการ์ด!');
+      if (!currentBattleId) return showNotify('กรุณาไปที่หมวด 2 และกดค้นหาห้องประลอง PvP ก่อน!');
       socket.emit('play_card', { battleId: currentBattleId, username: currentUser.username, cardId });
     }
 
