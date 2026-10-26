@@ -7,20 +7,20 @@ const fetch = require('node-fetch');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+const io = new Server(server, { cors: { origin: "*" }, maxHttpBufferSize: 1e8 }); // รองรับอัปโหลดรูปภาพขนาดใหญ่
 
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
   const publicIndexPath = path.join(__dirname, 'public', 'index.html');
-  const rootIndexPath = path.join(__dirname, 'index.html');
+  const rootIndexPath = path.join(__dirname, 'root', 'index.html');
   if (fs.existsSync(publicIndexPath)) res.sendFile(publicIndexPath);
-  else if (fs.existsSync(rootIndexPath)) res.sendFile(rootIndexPath);
-  else res.status(404).send('<h1>ไม่พบไฟล์ index.html</h1>');
+  else res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ฐานข้อมูลผู้เล่นทั้งหมดในเซิร์ฟเวอร์เดียวกัน
 const users = {}; 
 const onlineUsers = new Map(); 
 const matchmakingQueue = [];
@@ -46,12 +46,11 @@ function generateUID() {
 io.on('connection', (socket) => {
   io.emit('online_count', io.engine.clientsCount);
 
-  // ระบบล็อกอิน / สมัครสมาชิก
   socket.on('login', ({ username, password }) => {
     const userRegex = /^[a-zA-Z]+$/;
     const passRegex = /^[a-zA-Z0-9]{6,}$/;
     if (!userRegex.test(username)) return socket.emit('login_res', { success: false, msg: 'ชื่อผู้ใช้ต้องเป็นภาษาอังกฤษเท่านั้น' });
-    if (!passRegex.test(password)) return socket.emit('login_res', { success: false, msg: 'รหัสผ่านต้อง 6 ตัวขึ้นไป (A-Z, a-z, 0-9)' });
+    if (!passRegex.test(password)) return socket.emit('login_res', { success: false, msg: 'รหัสผ่านต้อง 6 ตัวขึ้นไป' });
 
     if (!users[username]) {
       const isAdmin = (username.toLowerCase() === 'admin' && password === 'Admin1234');
@@ -59,10 +58,12 @@ io.on('connection', (socket) => {
         uid: generateUID(),
         username,
         password,
-        role: isAdmin ? 'ADMIN' : 'ผู้เล่น', // ยศ: ผู้เล่น, นักแข่ง, ครีเอเตอร์, VIP, ADMIN
+        role: isAdmin ? 'ADMIN' : 'ผู้เล่น',
         vip: 0,
         title: 'ผู้กล้าใหม่',
-        avatar: 'https://i.imgur.com/8Km9tLL.png', // รูปโปรไฟล์เริ่มต้น
+        rank: 'Bronze III',
+        rankStars: 1,
+        avatar: 'https://i.imgur.com/8Km9tLL.png',
         coins: 1000,
         gems: 100,
         cards: ['liubei', 'sunquan'],
@@ -71,7 +72,7 @@ io.on('connection', (socket) => {
         banned: false
       };
     } else {
-      if (users[username].banned) return socket.emit('login_res', { success: false, msg: 'บัญชีนี้ถูกแบนจากระบบแล้ว!' });
+      if (users[username].banned) return socket.emit('login_res', { success: false, msg: 'บัญชีนี้ถูกแบน!' });
       if (users[username].password !== password) return socket.emit('login_res', { success: false, msg: 'รหัสผ่านไม่ถูกต้อง!' });
     }
 
@@ -79,39 +80,21 @@ io.on('connection', (socket) => {
     socket.emit('login_res', { success: true, user: users[username], allUsers: getUsersList() });
   });
 
-  // อัปเดตรูปโปรไฟล์
-  socket.on('update_avatar', ({ username, avatarUrl }) => {
+  socket.on('update_avatar', ({ username, avatarData }) => {
     if (users[username]) {
-      users[username].avatar = avatarUrl;
+      users[username].avatar = avatarData;
       socket.emit('user_update', users[username]);
-      socket.emit('notify', { msg: 'เปลี่ยนรูปโปรไฟล์สำเร็จ!' });
+      socket.emit('notify', { msg: 'อัปโหลดรูปโปรไฟล์สำเร็จ!' });
     }
   });
 
-  // ระบบเติมเงิน
-  socket.on('topup', ({ username, amount }) => {
-    if (amount < 10) return socket.emit('notify', { msg: 'เติมเงินขั้นต่ำ 10 บาทขึ้นไป' });
-    if (!users[username]) return;
-
-    const gemsGained = amount * 10;
-    users[username].gems += gemsGained;
-    if (amount >= 500) users[username].vip = 3;
-    else if (amount >= 200) users[username].vip = 2;
-    else if (amount >= 50) users[username].vip = 1;
-
-    socket.emit('user_update', users[username]);
-    socket.emit('notify', { msg: `เติมเงินสำเร็จ! ได้รับ ${gemsGained} เพชร` });
-  });
-
-  // ระบบสุ่มการ์ด (Gacha)
   socket.on('draw_gacha', ({ username, type }) => {
     const user = users[username];
     if (!user) return;
-
     let cost = type === 'gems' ? 50 : 200;
     let currency = type === 'gems' ? 'gems' : 'coins';
 
-    if (user[currency] < cost) return socket.emit('notify', { msg: `ทรัพยากรไม่พอ!` });
+    if (user[currency] < cost) return socket.emit('notify', { msg: 'ทรัพยากรไม่เพียงพอ!' });
     user[currency] -= cost;
 
     let pool = type === 'gems' ? HERO_DATABASE.filter(c => c.rarity === 'UR' || c.rarity === 'SSR') : HERO_DATABASE;
@@ -123,12 +106,11 @@ io.on('connection', (socket) => {
     socket.emit('gacha_result', { card: reward, user });
   });
 
-  // ระบบรับของประจำวัน
   socket.on('claim_daily', ({ username }) => {
     const user = users[username];
     if (!user) return;
     const today = new Date().toISOString().split('T')[0];
-    if (user.lastDailyClaim === today) return socket.emit('notify', { msg: 'รับของขวัญประจำวันไปแล้ววันนี้!' });
+    if (user.lastDailyClaim === today) return socket.emit('notify', { msg: 'รับของขวัญประจำวันไปแล้ว!' });
 
     user.lastDailyClaim = today;
     user.coins += 500;
@@ -137,52 +119,30 @@ io.on('connection', (socket) => {
     socket.emit('notify', { msg: 'รับสำเร็จ: +500 เหรียญ, +50 เพชร' });
   });
 
-  // --- ADMIN COMMANDS ---
-  socket.on('admin_action', ({ adminUser, targetUser, action, value }) => {
-    if (!users[adminUser] || users[adminUser].role !== 'ADMIN') {
-      return socket.emit('notify', { msg: 'คุณไม่มีสิทธิ์ผู้ดูแลระบบ!' });
-    }
-    const target = users[targetUser];
-    if (!target) return socket.emit('notify', { msg: 'ไม่พบชื่อผู้เล่นนี้' });
-
-    if (action === 'set_role') {
-      target.role = value; // ผู้เล่น, นักแข่ง, ครีเอเตอร์, VIP 1, VIP 2, VIP 3
-      socket.emit('notify', { msg: `เปลี่ยนยศของ ${targetUser} เป็น ${value} สำเร็จ` });
-    } else if (action === 'ban') {
-      target.banned = true;
-      socket.emit('notify', { msg: `แบนผู้เล่น ${targetUser} สำเร็จ` });
-    } else if (action === 'give_gems') {
-      target.gems += parseInt(value || 0);
-      socket.emit('notify', { msg: `เสกเพชรให้ ${targetUser} จำนวน ${value} เพชรสำเร็จ` });
-    }
-
-    io.emit('refresh_admin_list', getUsersList());
-  });
-
-  function getUsersList() {
-    return Object.values(users).map(u => ({ username: u.username, role: u.role, uid: u.uid, banned: u.banned }));
-  }
-
-  // ระบบ PvP
-  socket.on('find_match', ({ username }) => {
+  // ระบบ PvP ค้นหาห้องและเลือกการ์ด 5 ใบ
+  socket.on('find_match', ({ username, deck }) => {
+    if (!deck || deck.length !== 5) return socket.emit('notify', { msg: 'กรุณาเลือกการ์ดจัดเด็คให้ครบ 5 ใบก่อนสู้!' });
     if (matchmakingQueue.find(q => q.username === username)) return;
-    matchmakingQueue.push({ socketId: socket.id, username });
-    socket.emit('notify', { msg: 'กำลังค้นหาคู่ต่อสู้ในเซิร์ฟเวอร์...' });
+
+    matchmakingQueue.push({ socketId: socket.id, username, deck });
+    socket.emit('notify', { msg: 'กำลังค้นหาคู่ต่อสู้ระดับแรงค์ใกล้เคียง...' });
 
     if (matchmakingQueue.length >= 2) {
       const p1 = matchmakingQueue.shift();
       const p2 = matchmakingQueue.shift();
       const battleId = `battle_${Date.now()}`;
+
       activeBattles[battleId] = {
-        p1: { username: p1.username, hp: 100, socketId: p1.socketId },
-        p2: { username: p2.username, hp: 100, socketId: p2.socketId }
+        p1: { username: p1.username, socketId: p1.socketId, deck: p1.deck, hp: 100, index: 0 },
+        p2: { username: p2.username, socketId: p2.socketId, deck: p2.deck, hp: 100, index: 0 }
       };
-      io.to(p1.socketId).emit('match_found', { battleId, opponent: p2.username, myHp: 100, oppHp: 100 });
-      io.to(p2.socketId).emit('match_found', { battleId, opponent: p1.username, myHp: 100, oppHp: 100 });
+
+      io.to(p1.socketId).emit('match_found', { battleId, opponent: p2.username, myDeck: p1.deck, oppDeck: p2.deck });
+      io.to(p2.socketId).emit('match_found', { battleId, opponent: p1.username, myDeck: p2.deck, oppDeck: p1.deck });
     }
   });
 
-  socket.on('play_card', ({ battleId, username, cardId }) => {
+  socket.on('play_pvp_card', ({ battleId, username, cardId }) => {
     const battle = activeBattles[battleId];
     if (!battle) return;
     const isP1 = battle.p1.username === username;
@@ -195,11 +155,25 @@ io.on('connection', (socket) => {
     io.to(defender.socketId).emit('battle_update', { myHp: defender.hp, oppHp: attacker.hp, log: `ศัตรูใช้ ${card.name} โจมตีสร้างความเสียหาย ${card.atk}!` });
 
     if (defender.hp <= 0) {
-      io.to(attacker.socketId).emit('battle_end', { result: 'VICTORY', msg: 'คุณชนะการประลอง!' });
-      io.to(defender.socketId).emit('battle_end', { result: 'DEFEAT', msg: 'คุณพ่ายแพ้!' });
+      io.to(attacker.socketId).emit('battle_end', { result: 'VICTORY', msg: 'คุณชนะการประลอง ได้รับดาวแรงค์เพิ่ม!' });
+      io.to(defender.socketId).emit('battle_end', { result: 'DEFEAT', msg: 'คุณพ่ายแพ้ในศึกนี้!' });
       delete activeBattles[battleId];
     }
   });
+
+  socket.on('admin_action', ({ adminUser, targetUser, action, value }) => {
+    if (!users[adminUser] || users[adminUser].role !== 'ADMIN') return;
+    const target = users[targetUser];
+    if (!target) return;
+    if (action === 'set_role') target.role = value;
+    if (action === 'ban') target.banned = true;
+    if (action === 'give_gems') target.gems += parseInt(value || 0);
+    io.emit('refresh_admin_list', getUsersList());
+  });
+
+  function getUsersList() {
+    return Object.values(users).map(u => ({ username: u.username, role: u.role, uid: u.uid, banned: u.banned }));
+  }
 
   socket.on('disconnect', () => {
     onlineUsers.delete(socket.id);
@@ -208,10 +182,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`[3K Server] Running on port ${PORT}`);
-  setInterval(() => {
-    const renderUrl = process.env.RENDER_EXTERNAL_URL;
-    if (renderUrl) fetch(renderUrl).catch(() => {});
-  }, 8 * 60 * 1000);
-});
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
