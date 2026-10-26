@@ -1,23 +1,39 @@
-
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');
 const fetch = require('node-fetch');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
+// ให้ Express อ่านไฟล์ Static ทั้งจาก root และโฟลเดอร์ public
+app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Database ในหน่วยความจำ (In-Memory Database for Render free instance)
-const users = {}; // username -> userData
-const onlineUsers = new Map(); // socket.id -> username
+// Route สำหรับส่งหน้า index.html (รองรับทั้งการวางไฟล์นอกและใน public)
+app.get('/', (req, res) => {
+  const publicIndexPath = path.join(__dirname, 'public', 'index.html');
+  const rootIndexPath = path.join(__dirname, 'index.html');
+
+  if (fs.existsSync(publicIndexPath)) {
+    res.sendFile(publicIndexPath);
+  } else if (fs.existsSync(rootIndexPath)) {
+    res.sendFile(rootIndexPath);
+  } else {
+    res.status(404).send('<h1>ไม่พบไฟล์ index.html ในโปรเจกต์! กรุณาตรวจสอบบน GitHub</h1>');
+  }
+});
+
+// Database ในหน่วยความจำ (In-Memory)
+const users = {}; 
+const onlineUsers = new Map(); 
 const matchmakingQueue = [];
 const activeBattles = {};
 
-// ฐานข้อมูลตัวละครสามก๊กครบทุกวุ๊กก๊ก/จ๊กก๊ก/ง่อก๊ก/ต่างก๊ก
+// ฐานข้อมูลตัวละครสามก๊ก
 const HERO_DATABASE = [
   { id: 'caocao', name: 'โจโฉ', faction: 'Wei', rarity: 'UR', hp: 120, atk: 25, skill: 'บังคับบัญชาทัพ', desc: 'เพิ่มพลังโจมตีไพ่ใบอื่นในมือ 10%', effectColor: '#3b82f6' },
   { id: 'guanyu', name: 'กวนอู', faction: 'Shu', rarity: 'UR', hp: 130, atk: 30, skill: 'คมดาบมังกรเขียว', desc: 'คริติคอลความเสียหาย 200%', effectColor: '#22c55e' },
@@ -31,12 +47,10 @@ const HERO_DATABASE = [
   { id: 'zhaoyun', name: 'จูล่ง', faction: 'Shu', rarity: 'SSR', hp: 105, atk: 26, skill: 'ฝ่าทัพรับอาเต๊า', desc: 'หลบหลีกการโจมตีถัดไป 100%', effectColor: '#38bdf8' }
 ];
 
-// ฟังก์ชันสร้าง UID แบบสุ่ม
 function generateUID() {
   return '3K-' + Math.floor(100000 + Math.random() * 900000);
 }
 
-// ตรวจสอบ Username / Password ตามเงื่อนไข
 function validateAuth(username, password) {
   const userRegex = /^[a-zA-Z]+$/;
   const passRegex = /^[a-zA-Z0-9]{6,}$/;
@@ -46,25 +60,23 @@ function validateAuth(username, password) {
 }
 
 io.on('connection', (socket) => {
-  // ส่งจำนวนคนออนไลน์อัปเดตให้ทุกคน
   io.emit('online_count', io.engine.clientsCount);
 
-  // 1. ระบบสมัครเรียน / ล็อกอิน
+  // ระบบล็อกอิน / สมัครสมาชิก
   socket.on('login', ({ username, password }) => {
     const check = validateAuth(username, password);
     if (!check.valid) {
       return socket.emit('login_res', { success: false, msg: check.msg });
     }
 
-    // ตรวจสอบหรือสร้างผู้เล่นใหม่
     if (!users[username]) {
       const isAdmin = (username.toLowerCase() === 'admin' && password === 'Admin1234');
       users[username] = {
         uid: generateUID(),
         username,
         password,
-        role: isAdmin ? 'ADMIN' : 'ผู้เล่น', // ยศ: ผู้เล่น, นักแข่ง, ครีเอเตอร์, ADMIN
-        vip: 0, // VIP 0, 1, 2, 3
+        role: isAdmin ? 'ADMIN' : 'ผู้เล่น',
+        vip: 0,
         title: 'ผู้กล้าใหม่',
         coins: 1000,
         gems: 100,
@@ -82,7 +94,7 @@ io.on('connection', (socket) => {
     socket.emit('login_res', { success: true, user: users[username] });
   });
 
-  // 2. ระบบเติมเงิน (ขั้นต่ำ 10 บาท -> 10 บาท = 100 เพชร)
+  // ระบบเติมเงิน
   socket.on('topup', ({ username, amount }) => {
     if (amount < 10) return socket.emit('notify', { msg: 'เติมเงินขั้นต่ำ 10 บาทขึ้นไป' });
     if (!users[username]) return;
@@ -90,7 +102,6 @@ io.on('connection', (socket) => {
     const gemsGained = amount * 10;
     users[username].gems += gemsGained;
 
-    // ระบบปรับระดับ VIP ตามระดับยอดเติม
     if (amount >= 500) users[username].vip = 3;
     else if (amount >= 200) users[username].vip = 2;
     else if (amount >= 50) users[username].vip = 1;
@@ -99,7 +110,7 @@ io.on('connection', (socket) => {
     socket.emit('notify', { msg: `เติมเงินสำเร็จ! ได้รับ ${gemsGained} เพชร` });
   });
 
-  // 3. ระบบสุ่มการ์ด (Gacha)
+  // ระบบสุ่มการ์ด (Gacha)
   socket.on('draw_gacha', ({ username, type }) => {
     const user = users[username];
     if (!user) return;
@@ -113,20 +124,13 @@ io.on('connection', (socket) => {
 
     user[currency] -= cost;
 
-    // อัตราสุ่ม: ตู้เพชรโอกาสออก UR/SSR สูงกว่า
-    let pool = [];
-    if (type === 'gems') {
-      pool = HERO_DATABASE.filter(c => c.rarity === 'UR' || c.rarity === 'SSR');
-    } else {
-      pool = HERO_DATABASE;
-    }
-
+    let pool = type === 'gems' ? HERO_DATABASE.filter(c => c.rarity === 'UR' || c.rarity === 'SSR') : HERO_DATABASE;
     const reward = pool[Math.floor(Math.random() * pool.length)];
+
     if (!user.cards.includes(reward.id)) {
       user.cards.push(reward.id);
     }
 
-    // เพิ่มในการ์ดโชว์แร่อัตโนมัติถ้าเป็น UR
     if (reward.rarity === 'UR' && !user.rareShowcase.includes(reward.id)) {
       user.rareShowcase.push(reward.id);
     }
@@ -134,7 +138,7 @@ io.on('connection', (socket) => {
     socket.emit('gacha_result', { card: reward, user });
   });
 
-  // 4. ระบบรับของขวัญประจำวัน (Daily Login)
+  // ระบบรับของประจำวัน
   socket.on('claim_daily', ({ username }) => {
     const user = users[username];
     if (!user) return;
@@ -151,7 +155,7 @@ io.on('connection', (socket) => {
     socket.emit('notify', { msg: 'รับของขวัญประจำวันสำเร็จ: +500 เหรียญ, +50 เพชร' });
   });
 
-  // 5. ระบบ PvP & หาห้อง (Matchmaking)
+  // ระบบ PvP
   socket.on('find_match', ({ username }) => {
     if (matchmakingQueue.find(q => q.username === username)) return;
     
@@ -174,7 +178,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Action ต่อสู้ PvP
   socket.on('play_card', ({ battleId, username, cardId }) => {
     const battle = activeBattles[battleId];
     if (!battle) return;
@@ -203,12 +206,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// 6. Bot/Ping System ช่วยรักษาความสดใหม่ของ Render (ป้องกัน Sleep 24/7)
+// Bot Keep-Alive (ป้องกัน Render Sleep 24/7)
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`[3K Server] Running on port ${PORT}`);
   
-  // สเก็ตช์เรียกตัวเองทุกๆ 8 นาที
   setInterval(() => {
     const renderUrl = process.env.RENDER_EXTERNAL_URL;
     if (renderUrl) {
