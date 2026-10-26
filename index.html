@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สามก๊กออนไลน์ - 3 Kingdoms Card Battle</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Kanit', sans-serif; background: #0a0a0c; color: #e2e8f0; }
+    .chinese-border { border: 2px solid #d97706; box-shadow: 0 0 15px rgba(217, 119, 6, 0.3); }
+    .rarity-UR { border-color: #a855f7; box-shadow: 0 0 15px #a855f7; }
+    .rarity-SSR { border-color: #eab308; box-shadow: 0 0 10px #eab308; }
+    .card-hover:hover { transform: translateY(-8px) scale(1.03); transition: all 0.3s ease; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header Section -->
+  <header class="bg-black/80 border-b border-amber-600/50 p-4 flex justify-between items-center backdrop-blur">
+    <div class="flex items-center space-x-3">
+      <h1 class="text-2xl font-bold text-amber-500 tracking-wider">🏮 สามก๊ก CARD ONLINE</h1>
+      <span class="bg-amber-900/50 text-amber-300 text-xs px-2 py-1 rounded border border-amber-500/30">
+        🟢 คนออนไลน์: <span id="online-count">1</span> คน
+      </span>
+    </div>
+    <div id="user-bar" class="hidden flex items-center space-x-4 text-sm">
+      <div class="text-right">
+        <span id="player-name" class="font-bold text-amber-400"></span> 
+        <span id="player-badge" class="bg-red-900/80 text-red-200 text-xs px-2 py-0.5 rounded"></span>
+      </div>
+      <div class="flex space-x-2 bg-gray-900 px-3 py-1 rounded-full border border-gray-700">
+        <span>🪙 <span id="player-coins">0</span></span>
+        <span>💎 <span id="player-gems">0</span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification Banner -->
+  <div id="notify-box" class="hidden bg-amber-600 text-black text-center py-2 font-bold transition-all"></div>
+
+  <!-- Login Modal / Screen -->
+  <div id="login-screen" class="flex-1 flex items-center justify-center p-4">
+    <div class="bg-gray-900/90 chinese-border p-8 rounded-lg max-w-md w-full space-y-4">
+      <h2 class="text-2xl font-bold text-amber-400 text-center">เข้าสู่ยุทธภพสามก๊ก</h2>
+      <p class="text-xs text-gray-400 text-center">ชื่อภาษาอังกฤษเท่านั้น / รหัสผ่าน 6 ตัวขึ้นไป (ตัวอักษรและตัวเลข)</p>
+      
+      <div>
+        <label class="block text-sm mb-1 text-gray-300">ชื่อผู้ใช้ (English Only)</label>
+        <input id="login-user" type="text" placeholder="e.g. ZhaoYun2026" class="w-full bg-black/60 border border-amber-600/40 rounded p-2 text-white focus:outline-none focus:border-amber-400">
+      </div>
+      <div>
+        <label class="block text-sm mb-1 text-gray-300">รหัสผ่าน (6 ตัวขึ้นไป)</label>
+        <input id="login-pass" type="password" placeholder="******" class="w-full bg-black/60 border border-amber-600/40 rounded p-2 text-white focus:outline-none focus:border-amber-400">
+      </div>
+      
+      <button onclick="login()" class="w-full bg-amber-600 hover:bg-amber-500 text-black font-bold py-2 rounded transition">
+        เข้าสู่ระบบ / สมัครสมาชิก
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Game Dashboard -->
+  <div id="main-dashboard" class="hidden flex-1 container mx-auto p-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+    
+    <!-- Left Panel: Profile & Topup -->
+    <div class="bg-gray-900/60 chinese-border p-4 rounded-lg space-y-4">
+      <h3 class="text-xl font-bold text-amber-400 border-b border-amber-600/30 pb-2">👤 โปรไฟล์จอมยุทธ์</h3>
+      <div class="space-y-1 text-sm">
+        <p>UID: <span id="prof-uid" class="text-amber-300"></span></p>
+        <p>ฉายา: <span id="prof-title" class="text-amber-300"></span></p>
+        <p>ยศ: <span id="prof-role" class="text-blue-400"></span></p>
+        <p>ระดับ VIP: <span id="prof-vip" class="text-yellow-400"></span></p>
+      </div>
+
+      <button onclick="claimDaily()" class="w-full bg-green-700 hover:bg-green-600 text-white font-bold py-2 rounded text-sm transition">
+        🎁 รับของขวัญประจำวัน (รีเซ็ต 00:00)
+      </button>
+
+      <!-- Topup Box -->
+      <div class="bg-black/40 p-3 rounded border border-amber-600/30 space-y-2">
+        <h4 class="text-sm font-bold text-amber-400">💳 ระบบเติมเงิน (ขั้นต่ำ 10 บาท)</h4>
+        <input id="topup-amount" type="number" min="10" placeholder="จำนวนเงิน (บาท)" class="w-full bg-gray-900 border border-gray-700 p-1 rounded text-sm text-white">
+        <button onclick="topup()" class="w-full bg-amber-600 hover:bg-amber-500 text-black font-bold py-1 rounded text-sm">
+          เติมเงิน
+        </button>
+      </div>
+
+      <!-- Rare Cards Showcase -->
+      <div>
+        <h4 class="text-sm font-bold text-amber-400 mb-2">✨ ตู้โชว์การ์ดแรร์ (UR/SSR)</h4>
+        <div id="rare-showcase" class="grid grid-cols-2 gap-2 text-xs"></div>
+      </div>
+    </div>
+
+    <!-- Center Panel: PvP Arena & Gacha -->
+    <div class="md:col-span-2 space-y-6">
+      
+      <!-- Matchmaking & Battle Section -->
+      <div class="bg-gray-900/60 chinese-border p-4 rounded-lg text-center space-y-4">
+        <h3 class="text-xl font-bold text-amber-400">⚔️ สนามประลองออนไลน์ (PvP)</h3>
+        
+        <div id="battle-area" class="hidden space-y-4">
+          <div class="flex justify-between items-center bg-black/60 p-4 rounded">
+            <div>
+              <p id="my-name-battle" class="font-bold text-green-400"></p>
+              <p>HP: <span id="my-hp" class="text-red-400 text-xl font-bold">100</span></p>
+            </div>
+            <div class="text-xl font-bold text-amber-500">VS</div>
+            <div>
+              <p id="opp-name-battle" class="font-bold text-red-400"></p>
+              <p>HP: <span id="opp-hp" class="text-red-400 text-xl font-bold">100</span></p>
+            </div>
+          </div>
+          <div id="battle-log" class="text-sm text-amber-300 h-12 overflow-y-auto bg-black/40 p-2 rounded"></div>
+        </div>
+
+        <button id="find-match-btn" onclick="findMatch()" class="bg-red-700 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-full text-lg shadow-lg transform transition active:scale-95">
+          ⚔️ ค้นหาห้องประลอง
+        </button>
+      </div>
+
+      <!-- Gacha System -->
+      <div class="bg-gray-900/60 chinese-border p-4 rounded-lg space-y-4">
+        <h3 class="text-xl font-bold text-amber-400">🎰 อัญเชิญขุนพล (Gacha)</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <!-- Coins Gacha -->
+          <div class="bg-black/50 p-4 rounded border border-gray-700 text-center space-y-2">
+            <h4 class="font-bold text-gray-300">ตู้ขุนพลทั่วไป</h4>
+            <p class="text-xs text-gray-400">สุ่มการ์ดระดับ R - UR</p>
+            <button onclick="drawGacha('coins')" class="w-full bg-amber-700 hover:bg-amber-600 text-white font-bold py-2 rounded text-sm">
+              สุ่ม (200 เหรียญ)
+            </button>
+          </div>
+
+          <!-- Gems Gacha -->
+          <div class="bg-black/50 p-4 rounded border border-amber-500 text-center space-y-2">
+            <h4 class="font-bold text-amber-400">ตู้เทพขุนพล (เรทแรร์สูง)</h4>
+            <p class="text-xs text-amber-200/70">การันตี SSR/UR เท่านั้น!</p>
+            <button onclick="drawGacha('gems')" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 rounded text-sm">
+              สุ่ม (50 เพชร)
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- My Cards Inventory -->
+      <div class="bg-gray-900/60 chinese-border p-4 rounded-lg">
+        <h3 class="text-xl font-bold text-amber-400 mb-4">🎴 สำรับการ์ดของฉัน</h3>
+        <div id="my-cards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let currentUser = null;
+    let currentBattleId = null;
+
+    // ระบบแจ้งเตือน
+    function showNotify(msg) {
+      const box = document.getElementById('notify-box');
+      box.innerText = msg;
+      box.classList.remove('hidden');
+      setTimeout(() => box.classList.add('hidden'), 3500);
+    }
+
+    socket.on('notify', data => showNotify(data.msg));
+    socket.on('online_count', count => document.getElementById('online-count').innerText = count);
+
+    // ล็อกอิน
+    function login() {
+      const username = document.getElementById('login-user').value.trim();
+      const password = document.getElementById('login-pass').value.trim();
+      socket.emit('login', { username, password });
+    }
+
+    socket.on('login_res', data => {
+      if (!data.success) return alert(data.msg);
+      currentUser = data.user;
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('main-dashboard').classList.remove('hidden');
+      document.getElementById('user-bar').classList.remove('hidden');
+      updateUI();
+    });
+
+    socket.on('user_update', user => {
+      currentUser = user;
+      updateUI();
+    });
+
+    function updateUI() {
+      document.getElementById('player-name').innerText = currentUser.username;
+      document.getElementById('player-badge').innerText = currentUser.role;
+      document.getElementById('player-coins').innerText = currentUser.coins;
+      document.getElementById('player-gems').innerText = currentUser.gems;
+
+      document.getElementById('prof-uid').innerText = currentUser.uid;
+      document.getElementById('prof-title').innerText = currentUser.title;
+      document.getElementById('prof-role').innerText = currentUser.role;
+      document.getElementById('prof-vip').innerText = `VIP ${currentUser.vip}`;
+
+      renderCards();
+    }
+
+    function renderCards() {
+      const cardsDiv = document.getElementById('my-cards');
+      const rareDiv = document.getElementById('rare-showcase');
+      cardsDiv.innerHTML = '';
+      rareDiv.innerHTML = '';
+
+      currentUser.cards.forEach(cardId => {
+        const cardEl = document.createElement('div');
+        cardEl.className = `p-2 bg-black/80 rounded border rarity-SSR card-hover cursor-pointer text-center`;
+        cardEl.innerHTML = `<p class="font-bold text-amber-400">${cardId}</p><p class="text-xs text-gray-400">คลิกเพื่อใช้สู้</p>`;
+        cardEl.onclick = () => playCard(cardId);
+        cardsDiv.appendChild(cardEl);
+      });
+
+      currentUser.rareShowcase.forEach(cardId => {
+        const rareEl = document.createElement('div');
+        rareEl.className = 'p-1 bg-amber-900/40 rounded border border-amber-500 text-center text-amber-300';
+        rareEl.innerText = `⭐ ${cardId}`;
+        rareDiv.appendChild(rareEl);
+      });
+    }
+
+    function topup() {
+      const amount = parseInt(document.getElementById('topup-amount').value);
+      socket.emit('topup', { username: currentUser.username, amount });
+    }
+
+    function claimDaily() {
+      socket.emit('claim_daily', { username: currentUser.username });
+    }
+
+    function drawGacha(type) {
+      socket.emit('draw_gacha', { username: currentUser.username, type });
+    }
+
+    socket.on('gacha_result', data => {
+      currentUser = data.user;
+      updateUI();
+      alert(`🎉 คุณได้รับขุนพล: ${data.card.name} [ระดับ ${data.card.rarity}]!`);
+    });
+
+    // PvP
+    function findMatch() {
+      socket.emit('find_match', { username: currentUser.username });
+    }
+
+    socket.on('match_found', data => {
+      currentBattleId = data.battleId;
+      document.getElementById('battle-area').classList.remove('hidden');
+      document.getElementById('my-name-battle').innerText = currentUser.username;
+      document.getElementById('opp-name-battle').innerText = data.opponent;
+      document.getElementById('my-hp').innerText = data.myHp;
+      document.getElementById('opp-hp').innerText = data.oppHp;
+      document.getElementById('find-match-btn').classList.add('hidden');
+    });
+
+    function playCard(cardId) {
+      if (!currentBattleId) return showNotify('ต้องเข้าห้องแข่งขันก่อน!');
+      socket.emit('play_card', { battleId: currentBattleId, username: currentUser.username, cardId });
+    }
+
+    socket.on('battle_update', data => {
+      document.getElementById('my-hp').innerText = data.myHp;
+      document.getElementById('opp-hp').innerText = data.oppHp;
+      document.getElementById('battle-log').innerText = data.log;
+    });
+
+    socket.on('battle_end', data => {
+      alert(`${data.result}: ${data.msg}`);
+      document.getElementById('battle-area').classList.add('hidden');
+      document.getElementById('find-match-btn').classList.remove('hidden');
+      currentBattleId = null;
+    });
+  </script>
+</body>
+</html>
